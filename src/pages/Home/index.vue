@@ -5,9 +5,45 @@
         <button @click="addText">Text</button>
         <input
           v-model="editor.fontSize"
-          type="text"
+          class="input-font-size"
+          type="number"
           placeholder="Font Size"
         >
+        <input
+          v-model="editor.inputText"
+          class="input-text"
+          type="text"
+          placeholder="Text Input"
+        >
+        <div class="p-home__tools-align">
+          <input
+            id="align-left"
+            v-model="editor.alignText"
+            name="align"
+            value="left"
+            class="input-text-align"
+            type="radio"
+          >
+          <label for="align-left">left</label>
+          <input
+            id="align-center"
+            v-model="editor.alignText"
+            name="align"
+            value="center"
+            class="input-text-align"
+            type="radio"
+          >
+          <label for="align-center">Center</label>
+          <input
+            id="align-right"
+            v-model="editor.alignText"
+            name="align"
+            value="right"
+            class="input-text-align"
+            type="radio"
+          >
+          <label for="align-right">Right</label>
+        </div>
         <input
           ref="input-file"
           type="file"
@@ -112,13 +148,15 @@ export default {
     canvas: null,
     editor: {
       fontSize: 11,
+      inputText: 'Text',
+      alignText: 'left',
     },
     input: {
       image: null,
     },
     output: {
       offsetY: 3,
-      json: '',
+      json: '[]',
     },
   }),
   mounted() {
@@ -138,22 +176,21 @@ export default {
       PdfJS.GlobalWorkerOptions.workerSrc = pdfjsWorker;
     },
     addText() {
-      const sampleText = 'This is a text';
-      const textObject = new fabric.Text(sampleText, {
+      if (!this.editor.inputText) return;
+      const textObject = new fabric.Text(this.editor.inputText, {
         top: 10,
         left: 10,
         fontSize: this.editor.fontSize,
         fontFamily: 'Arial',
         hasControl: false,
         originY: 'bottom',
+        originX: this.editor.alignText,
       });
       this.canvas.add(textObject);
     },
     async uploadPdf() {
-      console.log(this.$refs['input-file'].files);
       const file = await fileToDArray(this.$refs['input-file'].files[0]);
       const pdfFile = await PdfJS.getDocument(file).promise;
-      console.log(pdfFile);
       const firstPage = await pdfFile.getPage(1);
       const {
         image: imageFirstPage,
@@ -171,36 +208,36 @@ export default {
       });
     },
     async addImage() {
-      console.log(this.$refs['input-file'].files);
       const file = await fileToDataUrl(this.$refs['input-file'].files[0]);
       fabric.Image.fromURL(file, (image) => {
         this.canvas.add(image);
       });
     },
     setupKeyboardShortcut() {
+      const aggregatePixel = 1;
       document.onkeydown = (e) => {
         switch (e.key) {
           case 'ArrowUp':
             if(this.canvas.getActiveObject()){
-              this.canvas.getActiveObject().top -= 5;
+              this.canvas.getActiveObject().top -= aggregatePixel;
               this.canvas.renderAll();
             }
             break;
           case 'ArrowDown':
             if(this.canvas.getActiveObject()){
-              this.canvas.getActiveObject().top += 5;
+              this.canvas.getActiveObject().top += aggregatePixel;
               this.canvas.renderAll(); 
             }
             break;
           case 'ArrowLeft':
             if(this.canvas.getActiveObject()){
-              this.canvas.getActiveObject().left -= 5; 
+              this.canvas.getActiveObject().left -= aggregatePixel; 
               this.canvas.renderAll();
             }
             break;
           case 'ArrowRight':
             if(this.canvas.getActiveObject()){
-              this.canvas.getActiveObject().left += 5; 
+              this.canvas.getActiveObject().left += aggregatePixel; 
               this.canvas.renderAll();
             }
             break;
@@ -221,6 +258,8 @@ export default {
       const result = textResult.map(el => ({
         x: el.left,
         y: imageHeight - el.top + this.output.offsetY,
+        value: el.text,
+        align: el.originX,
       }));
       this.output.json = JSON.stringify(result, null, '  ');
     },
@@ -251,5 +290,8 @@ export default {
 .p-home__output textarea {
   width: 100%;
   height: calc(100vh - 100px);
+}
+.input-font-size {
+  width: 36px;
 }
 </style>
